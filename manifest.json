@@ -1,6 +1,6 @@
 ﻿{
 	"manifest_version": 2,
-	"name": "Auto Query",
+	"name": "Auto Query N",
 	"version": "1.0",
 	"description": "自動查詢指定網址的訊息",
 	"content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
