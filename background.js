@@ -2,7 +2,7 @@
 	if(true) console.log(text);
 }
 //--初始化資料
-if (!localStorage.autoQueryOption) {
+if (true || !localStorage.autoQueryOption) {
 	localStorage.autoQueryOption = JSON.stringify({
 		//--預設單位時間(5000毫秒/單位)
 		'TimeUnits': 5000,
@@ -20,6 +20,7 @@ if (!localStorage.autoQueryOption) {
 		'DesktopAlert': true
 	});
 }
+//初始化檢查規則，因為尚在開發中，為了方便主動刪除測試資料以初始化，則將false設定為true並重新載入一次
 if (false || !localStorage.autoQueryDataItem) {
 	localStorage.autoQueryDataItem = JSON.stringify({
 		'Execution': {
@@ -58,6 +59,167 @@ var DataItem = {
 		return this;
 	},
 };
+//--因為尚在開發中，此為預先自訂義執行項目與資料，當開發完成將刪除本段
+if(true){
+	DataItem.Get().Execution = {
+		'OnlyID': 5,
+		'0': {
+			'Name': '消息與提醒',
+			'Option': {},
+			'Code':
+				'OpenURL = {"pm_ntc":Delete,"myprompt":Delete};'
+				+ 'ShowMessage = {"pm_ntc":Delete,"myprompt":Delete};'
+				+ 'if(JData.find("a:contains(登錄)").size()) Login = true;'
+				+ 'else {'
+				+ '	if(JData.find("#pm_ntc").hasClass("new")){'
+				+ '		OpenURL.pm_ntc = Server + JData.find("#pm_ntc").attr("href");'
+				+ '		ShowMessage.pm_ntc = ServerName + JData.find("#pm_ntc").text();'
+				+ '	}'
+				+ '	if(JData.find("#myprompt").hasClass("new")){'
+				+ '		OpenURL.myprompt = Server + JData.find("#myprompt").attr("href");'
+				+ '		ShowMessage.myprompt = ServerName + JData.find("#myprompt").text();'
+				+ '	}'
+				+ '}'
+		},
+		'1': {
+			'Name': '檢查新回復',
+			'Option': {},
+			'Code':
+				'var JQ = JData.find(".pls.ptm.pbm span:last");'
+				+ 'if(!Record) Record = 0;'
+				+ 'if(JQ.size()){'
+				+ '	var NewRecord = +JQ.text();'
+				+ '	if(NewRecord > Record) {'
+				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + Data.match(/thread-([^-]+)-/)[1] + "&authorid=0&postno=" + (Record + 2);'
+				+ '		ShowMessage = ServerName + PathName + "有 "+(NewRecord-Record)+" 筆未讀回覆";'
+				+ '	}'
+				+ '	Record = NewRecord;'
+				+ '}'
+				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+		},
+		'2': {
+			'Name': '檢查【版主討論區】',
+			'Option': {},
+			'Code':
+				'var JQ = JData.find("a:contains(【版主討論區】)").parents("tbody");'
+				+ 'if(!Record) Record = 0;'
+				+ 'if(JQ.size()){'
+				+ '	var NewRecord = +JQ.find(".xi2").text();'
+				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
+				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
+				+ '	if(NewRecord > Record && (!LoginData || NewRecord - Record > 2 || PostName != LoginData.username)) {'
+				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (Record + 2);'
+				+ '		ShowMessage = "【版主討論區】有 "+(NewRecord-Record)+" 筆未讀回覆";'
+				+ '	}'
+				+ '	Record = NewRecord;'
+				+ '}'
+				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+		},
+		'3': {
+			'Name': '檢查【漫畫求檔區】',
+			'Option': {},
+			'Code':
+				'var JQ = JData.find("a:contains(【漫畫求檔區】)").parents("tbody");'
+				+ 'if(!Record) Record = 0;'
+				+ 'if(JQ.size()){'
+				+ '	var NewRecord = +JQ.find(".xi2").text();'
+				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
+				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
+				+ '	if(NewRecord > Record && (!LoginData || NewRecord - Record > 2 || PostName != LoginData.username)) {'
+				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (Record + 2);'
+				+ '		ShowMessage = "【漫畫求檔區】有 "+(NewRecord-Record)+" 筆未讀回覆";'
+				+ '	}'
+				+ '	Record = NewRecord;'
+				+ '}'
+				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+		},
+		'4': {
+			'Name': '檢查【會員反應區】',
+			'Option': {},
+			'Code':
+				'var JQ = JData.find("a:contains(【會員反應區】)").parents("tbody");'
+				+ 'if(!Record) Record = "";'
+				+ 'if(JQ.size()){'
+				+ '	var NewTime = (new Date(JQ.find(".by:last").find("span").attr("title"))).getTime();'
+				+ '	var NewP = +JQ.find(".xi2").text();'
+				+ '	var OpenRecord = (Record + ",0").split(",");'
+				+ '	var OldTime = +OpenRecord[1];'
+				+ '	var OldP = +OpenRecord[0];'
+				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
+				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
+				+ '	if(NewTime > OldTime && (!LoginData || NewP - OldP > 1 || PostName != LoginData.username)) {'
+				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (OldP + 1);'
+				+ '		ShowMessage = "【會員反應區】有 "+(NewP-OldP)+" 筆未讀回覆";'
+				+ '	    Record = NewP + "," + NewTime;'
+				+ '	}'
+				+ '}'
+				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+		},
+		'5': {
+			'Name': '檢查【主題申請區】',
+			'Option': {},
+			'Code':
+				'var JQ = JData.find("a:contains(【主題申請區】)").parents("tbody");'
+				+ 'if(!Record) Record = 0;'
+				+ 'if(JQ.size()){'
+				+ '	var NewRecord = +JQ.find(".xi2").text();'
+				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
+				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
+				+ '	if(NewRecord > Record && (!LoginData || NewRecord - Record > 1 || PostName != LoginData.username)) {'
+				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (Record + 2);'
+				+ '		ShowMessage = "【主題申請區】有 "+(NewRecord-Record)+" 筆未讀回覆";'
+				+ '	}'
+				+ '	Record = NewRecord;'
+				+ '}'
+				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+		},
+		'6': {
+			'Name': '每日登入',
+			'Option': {},
+			'Code':
+				'var ToDay = (new Date()).getDate();'
+				+ 'if(!Record) Record = 0;'
+				+ 'if(Record != ToDay)'
+				+ '	OpenURL = ["http://www.eyny.com/forum-1628-1.html"];'
+				+ 'Record = ToDay;'
+		}
+	};
+	DataItem.Update();
+}
+//--因為尚在開發中，此為預先自定義登入伺服器資料，第一次載入設為true之後根據需求可改為false
+if(false){
+	DataItem.Get().Server = {
+		'http://www.eyny.com/': {
+			'Name': 'EYNY',
+			'LoginData': {
+				'Path': 'member.php?mod=logging&action=login&loginsubmit=yes&infloat=yes&lssubmit=yes',
+				'Type': 'POST',
+				'Data': {
+					'username': 'username',
+					'password': 'password',
+					'questionid': 3,
+					'answer': '斗六'
+				}
+			},
+			'Option': {},
+			'Path': {
+				'forum.php?mod=forumdisplay&fid=1628&filter=author&orderby=dateline': {
+					'Name': '漫畫下載(上傳空間)帖子列表',
+					'Option': {},
+					'Execution': {
+						'0': '',
+						'2': '',
+						'3': '',
+						'4': '',
+						'5': '',
+						'6': ''
+					}
+				}
+			}
+		}
+	};
+	DataItem.Update();
+}
 
 //--點擊按鈕事件
 chrome.browserAction.onClicked.addListener(function () {
