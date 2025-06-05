@@ -1,4 +1,6 @@
-﻿function Log_(text) {
+importScripts('js/jquery.js');
+
+function Log_(text) {
 	if(true) console.log(text);
 }
 //--初始化資料
@@ -66,122 +68,164 @@ if(true){
 		'0': {
 			'Name': '消息與提醒',
 			'Option': {},
-			'Code':
-				'OpenURL = {"pm_ntc":Delete,"myprompt":Delete};'
-				+ 'ShowMessage = {"pm_ntc":Delete,"myprompt":Delete};'
-				+ 'if(JData.find("a:contains(登錄)").size()) Login = true;'
-				+ 'else {'
-				+ '	if(JData.find("#pm_ntc").hasClass("new")){'
-				+ '		OpenURL.pm_ntc = Server + JData.find("#pm_ntc").attr("href");'
-				+ '		ShowMessage.pm_ntc = ServerName + JData.find("#pm_ntc").text();'
-				+ '	}'
-				+ '	if(JData.find("#myprompt").hasClass("new")){'
-				+ '		OpenURL.myprompt = Server + JData.find("#myprompt").attr("href");'
-				+ '		ShowMessage.myprompt = ServerName + JData.find("#myprompt").text();'
-				+ '	}'
-				+ '}'
+			'rules': [
+              {
+                "type": "LOGIN_CHECK",
+                "selector": "a:contains(登錄)",
+                "setsLoginFlag": true
+              },
+              {
+                "type": "EXTRACT_INFO",
+                "onlyIfNotLogin": true,
+                "selector": "#pm_ntc",
+                "conditionClass": "new",
+                "openUrl": { "targetKey": "pm_ntc", "attribute": "href", "prefix": "Server" },
+                "showMessage": { "targetKey": "pm_ntc", "attribute": "text", "prefix": "ServerName" }
+              },
+              {
+                "type": "EXTRACT_INFO",
+                "onlyIfNotLogin": true,
+                "selector": "#myprompt",
+                "conditionClass": "new",
+                "openUrl": { "targetKey": "myprompt", "attribute": "href", "prefix": "Server" },
+                "showMessage": { "targetKey": "myprompt", "attribute": "text", "prefix": "ServerName" }
+              }
+            ]
 		},
 		'1': {
 			'Name': '檢查新回復',
 			'Option': {},
-			'Code':
-				'var JQ = JData.find(".pls.ptm.pbm span:last");'
-				+ 'if(!Record) Record = 0;'
-				+ 'if(JQ.size()){'
-				+ '	var NewRecord = +JQ.text();'
-				+ '	if(NewRecord > Record) {'
-				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + Data.match(/thread-([^-]+)-/)[1] + "&authorid=0&postno=" + (Record + 2);'
-				+ '		ShowMessage = ServerName + PathName + "有 "+(NewRecord-Record)+" 筆未讀回覆";'
-				+ '	}'
-				+ '	Record = NewRecord;'
-				+ '}'
-				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+			'rules': [
+				{
+					"type": "UPDATE_RECORD_AND_NOTIFY",
+					"selector": ".pls.ptm.pbm span:last",
+					"initializeRecordTo": 0,
+					"extractValue": { "from": "text", "dataType": "number" },
+					"comparison": { "type": "GREATER_THAN_RECORD" },
+					"ifConditionMet": {
+						"setOpenUrl": "http://www.eyny.com/forum.php?mod=redirect&ptid={ptid}&authorid=0&postno={recordPlus2}",
+						"setShowMessage": "{ServerName}{PathName}有 {diff} 筆未讀回覆",
+						"updateRecordTo": "extractedValue"
+					},
+					"fallbackLoginCheckSelector": "a:contains(登錄)"
+				}
+			]
 		},
 		'2': {
 			'Name': '檢查【版主討論區】',
 			'Option': {},
-			'Code':
-				'var JQ = JData.find("a:contains(【版主討論區】)").parents("tbody");'
-				+ 'if(!Record) Record = 0;'
-				+ 'if(JQ.size()){'
-				+ '	var NewRecord = +JQ.find(".xi2").text();'
-				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
-				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
-				+ '	if(NewRecord > Record && (!LoginData || NewRecord - Record > 2 || PostName != LoginData.username)) {'
-				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (Record + 2);'
-				+ '		ShowMessage = "【版主討論區】有 "+(NewRecord-Record)+" 筆未讀回覆";'
-				+ '	}'
-				+ '	Record = NewRecord;'
-				+ '}'
-				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+			'rules': [
+				{
+					"type": "UPDATE_RECORD_AND_NOTIFY",
+					"selector": "a:contains(【版主討論區】)",
+					"parentElementSelector": "tbody",
+					"initializeRecordTo": 0,
+					"extractValues": [
+						{ "name": "NewRecord", "selector": ".xi2", "from": "text", "dataType": "number" },
+						{ "name": "PID", "from": "id", "dataType": "string", "regexReplace": { "pattern": "stickthread_", "flags": "g", "replacement": "" } },
+						{ "name": "PostName", "selector": ".by:last a:first", "from": "text", "dataType": "string" }
+					],
+					"complexCondition": { "type": "RULE_2_5_LIKE_CONDITION", "diffThreshold": 2 },
+					"ifConditionMet": {
+						"setOpenUrl": "http://www.eyny.com/forum.php?mod=redirect&ptid={extracted.PID}&authorid=0&postno={recordPlus2}",
+						"setShowMessage": "【版主討論區】有 {diff} 筆未讀回覆",
+						"updateRecordTo": "extractedValue",
+						"updateSource": "NewRecord"
+					},
+					"fallbackLoginCheckSelector": "a:contains(登錄)"
+				}
+			]
 		},
 		'3': {
 			'Name': '檢查【漫畫求檔區】',
 			'Option': {},
-			'Code':
-				'var JQ = JData.find("a:contains(【漫畫求檔區】)").parents("tbody");'
-				+ 'if(!Record) Record = 0;'
-				+ 'if(JQ.size()){'
-				+ '	var NewRecord = +JQ.find(".xi2").text();'
-				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
-				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
-				+ '	if(NewRecord > Record && (!LoginData || NewRecord - Record > 2 || PostName != LoginData.username)) {'
-				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (Record + 2);'
-				+ '		ShowMessage = "【漫畫求檔區】有 "+(NewRecord-Record)+" 筆未讀回覆";'
-				+ '	}'
-				+ '	Record = NewRecord;'
-				+ '}'
-				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+			'rules': [
+				{
+					"type": "UPDATE_RECORD_AND_NOTIFY",
+					"selector": "a:contains(【漫畫求檔區】)",
+					"parentElementSelector": "tbody",
+					"initializeRecordTo": 0,
+					"extractValues": [
+						{ "name": "NewRecord", "selector": ".xi2", "from": "text", "dataType": "number" },
+						{ "name": "PID", "from": "id", "dataType": "string", "regexReplace": { "pattern": "stickthread_", "flags": "g", "replacement": "" } },
+						{ "name": "PostName", "selector": ".by:last a:first", "from": "text", "dataType": "string" }
+					],
+					"complexCondition": { "type": "RULE_2_5_LIKE_CONDITION", "diffThreshold": 2 },
+					"ifConditionMet": {
+						"setOpenUrl": "http://www.eyny.com/forum.php?mod=redirect&ptid={extracted.PID}&authorid=0&postno={recordPlus2}",
+						"setShowMessage": "【漫畫求檔區】有 {diff} 筆未讀回覆",
+						"updateRecordTo": "extractedValue",
+						"updateSource": "NewRecord"
+					},
+					"fallbackLoginCheckSelector": "a:contains(登錄)"
+				}
+			]
 		},
 		'4': {
 			'Name': '檢查【會員反應區】',
 			'Option': {},
-			'Code':
-				'var JQ = JData.find("a:contains(【會員反應區】)").parents("tbody");'
-				+ 'if(!Record) Record = "";'
-				+ 'if(JQ.size()){'
-				+ '	var NewTime = (new Date(JQ.find(".by:last").find("span").attr("title"))).getTime();'
-				+ '	var NewP = +JQ.find(".xi2").text();'
-				+ '	var OpenRecord = (Record + ",0").split(",");'
-				+ '	var OldTime = +OpenRecord[1];'
-				+ '	var OldP = +OpenRecord[0];'
-				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
-				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
-				+ '	if(NewTime > OldTime && (!LoginData || NewP - OldP > 1 || PostName != LoginData.username)) {'
-				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (OldP + 1);'
-				+ '		ShowMessage = "【會員反應區】有 "+(NewP-OldP)+" 筆未讀回覆";'
-				+ '	    Record = NewP + "," + NewTime;'
-				+ '	}'
-				+ '}'
-				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+			'rules': [
+				{
+					"type": "UPDATE_RECORD_AND_NOTIFY",
+					"selector": "a:contains(【會員反應區】)",
+					"parentElementSelector": "tbody",
+					"initializeRecordTo": "0,0",
+					"recordFormat": "comma_separated_tuple",
+					"recordTupleParts": ["OldP", "OldTime"],
+					"extractValues": [
+						{ "name": "NewTime", "selector": ".by:last span", "from": "title", "dataType": "date_string_to_epoch" },
+						{ "name": "NewP", "selector": ".xi2", "from": "text", "dataType": "number" },
+						{ "name": "PID", "from": "id", "dataType": "string", "regexReplace": { "pattern": "stickthread_", "flags": "g", "replacement": "" } },
+						{ "name": "PostName", "selector": ".by:last a:first", "from": "text", "dataType": "string" }
+					],
+					"complexCondition": { "type": "RULE_4_CONDITION" },
+					"ifConditionMet": {
+						"setOpenUrl": "http://www.eyny.com/forum.php?mod=redirect&ptid={extracted.PID}&authorid=0&postno={OldPplus1}",
+						"setShowMessage": "【會員反應區】有 {diffP} 筆未讀回覆",
+						"updateRecordOnlyOnConditionMet": true,
+						"updateRecordFormat": "{extracted.NewP},{extracted.NewTime}"
+					},
+					"fallbackLoginCheckSelector": "a:contains(登錄)"
+				}
+			]
 		},
 		'5': {
 			'Name': '檢查【主題申請區】',
 			'Option': {},
-			'Code':
-				'var JQ = JData.find("a:contains(【主題申請區】)").parents("tbody");'
-				+ 'if(!Record) Record = 0;'
-				+ 'if(JQ.size()){'
-				+ '	var NewRecord = +JQ.find(".xi2").text();'
-				+ '	var PID = +JQ.attr("id").replace(/stickthread_/g, "");'
-				+ '	var PostName = JQ.find(".by:last").find("a:first").text();'
-				+ '	if(NewRecord > Record && (!LoginData || NewRecord - Record > 1 || PostName != LoginData.username)) {'
-				+ '		OpenURL = "http://www.eyny.com/forum.php?mod=redirect&ptid=" + PID + "&authorid=0&postno=" + (Record + 2);'
-				+ '		ShowMessage = "【主題申請區】有 "+(NewRecord-Record)+" 筆未讀回覆";'
-				+ '	}'
-				+ '	Record = NewRecord;'
-				+ '}'
-				+ 'else if(JData.find("a:contains(登錄)").size()) Login = true;'
+			'rules': [
+				{
+					"type": "UPDATE_RECORD_AND_NOTIFY",
+					"selector": "a:contains(【主題申請區】)",
+					"parentElementSelector": "tbody",
+					"initializeRecordTo": 0,
+					"extractValues": [
+						{ "name": "NewRecord", "selector": ".xi2", "from": "text", "dataType": "number" },
+						{ "name": "PID", "from": "id", "dataType": "string", "regexReplace": { "pattern": "stickthread_", "flags": "g", "replacement": "" } },
+						{ "name": "PostName", "selector": ".by:last a:first", "from": "text", "dataType": "string" }
+					],
+					"complexCondition": { "type": "RULE_2_5_LIKE_CONDITION", "diffThreshold": 1 },
+					"ifConditionMet": {
+						"setOpenUrl": "http://www.eyny.com/forum.php?mod=redirect&ptid={extracted.PID}&authorid=0&postno={recordPlus2}",
+						"setShowMessage": "【主題申請區】有 {diff} 筆未讀回覆",
+						"updateRecordTo": "extractedValue",
+						"updateSource": "NewRecord"
+					},
+					"fallbackLoginCheckSelector": "a:contains(登錄)"
+				}
+			]
 		},
 		'6': {
 			'Name': '每日登入',
 			'Option': {},
-			'Code':
-				'var ToDay = (new Date()).getDate();'
-				+ 'if(!Record) Record = 0;'
-				+ 'if(Record != ToDay)'
-				+ '	OpenURL = ["http://www.eyny.com/forum-1628-1.html"];'
-				+ 'Record = ToDay;'
+			'rules': [{
+				"type": "DAILY_LOGIN_CHECK",
+				"initializeRecordTo": 0,
+				"condition": "RECORD_NOT_EQUALS_TODAY",
+				"ifConditionMet": {
+					"setOpenUrl": ["http://www.eyny.com/forum-1628-1.html"]
+				},
+				"updateRecordTo": "TODAY"
+			}]
 		}
 	};
 	DataItem.Update();
@@ -222,7 +266,7 @@ if(false){
 }
 
 //--點擊按鈕事件
-chrome.browserAction.onClicked.addListener(function () {
+chrome.action.onClicked.addListener(function () {
 	var Update = false;
 	for (var URLID in ClickTemp) {
 		if (typeof ClickTemp[URLID] == 'object') {
@@ -247,7 +291,7 @@ chrome.browserAction.onClicked.addListener(function () {
 		}
 	}
 	DataItem.Update();
-	chrome.browserAction.setIcon({ path: "icons/Silent.png" });
+	chrome.action.setIcon({ path: "icons/Silent.png" });
 	ClickTemp = {};
 });
 //--動畫
@@ -275,7 +319,8 @@ function DesktopAlert(Message) {
 }
 //--播放音效
 function OpenSound(SoundFilePath) {
-	$('#sounds').append('<audio src="' + SoundFilePath + '" autoplay></audio>');
+	// TODO: Implement sound playing for Manifest V3
+	// $('#sounds').append('<audio src="' + SoundFilePath + '" autoplay></audio>');
 }
 //--檢查物件
 function CheckObject(Obj) {
@@ -329,6 +374,219 @@ function Login(Server, Path, ExecutionID) {
 	}
 	else Scheduling.AddQuery(Server, Path, ExecutionID);
 }
+
+function processRuleEngine(rulesArray, JData, PageData, Server, ServerName, PathName, currentRecord, LoginData) {
+    let Login = false;
+    let OpenURL = {};
+    let ShowMessage = {};
+    // let updatedRecord = currentRecord; // Will be handled more carefully based on rule type and conditions
+    let finalRecordValue = currentRecord; // Start with currentRecord, update based on rules
+
+    let extractedData = {}; // Used for rules that extract multiple values
+    let parsedRecord = {}; // For tuple records
+
+    for (const rule of rulesArray) {
+        // Initialize updatedRecord for this rule based on currentRecord or rule's initializeRecordTo
+        let ruleScopedUpdatedRecord = currentRecord;
+        if (rule.initializeRecordTo !== undefined && (currentRecord === undefined || currentRecord === null || currentRecord === "" || currentRecord === 0 && rule.recordFormat === "comma_separated_tuple" && rule.initializeRecordTo === "0,0")) {
+             // Special handling for "0,0" or empty init for tuple for rule 4
+            if (rule.recordFormat === "comma_separated_tuple" && rule.initializeRecordTo === "0,0" && !currentRecord) {
+                ruleScopedUpdatedRecord = "0,0";
+            } else if (rule.initializeRecordTo !== "" && rule.recordFormat !== "comma_separated_tuple") { // Avoid using "" for non-tuple if currentRecord is 0
+                 ruleScopedUpdatedRecord = rule.initializeRecordTo;
+            } else if (!currentRecord && rule.initializeRecordTo) { // General case for init
+                ruleScopedUpdatedRecord = rule.initializeRecordTo;
+            }
+        }
+
+
+        if (rule.recordFormat === "comma_separated_tuple") {
+            const recordParts = (ruleScopedUpdatedRecord || rule.initializeRecordTo || "0,0").split(',');
+            const partNames = rule.recordTupleParts || ["val1", "val2"];
+            parsedRecord[partNames[0]] = parseFloat(recordParts[0]) || 0;
+            if (partNames.length > 1 && recordParts.length > 1) {
+                parsedRecord[partNames[1]] = parseFloat(recordParts[1]) || 0;
+            } else if (partNames.length > 1) {
+                 parsedRecord[partNames[1]] = 0; // Default if second part missing
+            }
+        } else {
+            // Ensure ruleScopedUpdatedRecord is a number if it's meant to be for non-tuple records that are numeric
+            if (typeof ruleScopedUpdatedRecord === 'string' && !isNaN(parseFloat(ruleScopedUpdatedRecord))) {
+                 // For rules 1,2,3,5, record is expected to be a number after init or from currentRecord
+                 if (rule.type === "UPDATE_RECORD_AND_NOTIFY" && (!rule.recordFormat || rule.recordFormat !== "comma_separated_tuple") ) {
+                    ruleScopedUpdatedRecord = parseFloat(ruleScopedUpdatedRecord) || 0;
+                 }
+            }
+        }
+
+
+        let baseElement = JData.find(rule.selector);
+        if (rule.parentElementSelector && baseElement.length > 0) {
+            baseElement = baseElement.closest(rule.parentElementSelector);
+        }
+
+        if (rule.type === "LOGIN_CHECK") {
+            if (baseElement.length > 0) {
+                Login = rule.setsLoginFlag;
+            }
+        } else if (rule.type === "EXTRACT_INFO") {
+            if (rule.onlyIfNotLogin && Login) {
+                continue;
+            }
+            if (baseElement.length > 0) {
+                let conditionMet = true;
+                if (rule.conditionClass) {
+                    conditionMet = baseElement.hasClass(rule.conditionClass);
+                }
+
+                if (conditionMet) {
+                    if (rule.openUrl) {
+                        let urlVal = baseElement.attr(rule.openUrl.attribute);
+                        if (urlVal !== undefined) {
+                           OpenURL[rule.openUrl.targetKey] = (rule.openUrl.prefix === 'Server' ? Server : (rule.openUrl.prefix || '')) + urlVal;
+                        }
+                    }
+                    if (rule.showMessage) {
+                        let msgVal = rule.showMessage.attribute === 'text' ? baseElement.text() : baseElement.attr(rule.showMessage.attribute);
+                        if (msgVal !== undefined) {
+                            ShowMessage[rule.showMessage.targetKey] = (rule.showMessage.prefix === 'ServerName' ? ServerName : (rule.showMessage.prefix || '')) + msgVal;
+                        }
+                    }
+                }
+            }
+        } else if (rule.type === "UPDATE_RECORD_AND_NOTIFY") {
+            extractedData = {};
+            if (rule.extractValues && Array.isArray(rule.extractValues)) {
+                for (const ev of rule.extractValues) {
+                    let sourceElement = ev.selector ? baseElement.find(ev.selector) : baseElement;
+                    if (sourceElement.length > 0) {
+                        let valStr = (ev.from === "text") ? sourceElement.text() : sourceElement.attr(ev.from);
+                        if (valStr !== undefined) {
+                            if (ev.regexReplace) {
+                                try {
+                                    valStr = valStr.replace(new RegExp(ev.regexReplace.pattern, ev.regexReplace.flags || ""), ev.regexReplace.replacement);
+                                } catch (e) { Log_(`Regex error for ${PathName}: ${e}`); }
+                            }
+                            if (ev.dataType === "number") extractedData[ev.name] = parseFloat(valStr);
+                            else if (ev.dataType === "date_string_to_epoch") extractedData[ev.name] = (new Date(valStr)).getTime() || 0;
+                            else extractedData[ev.name] = valStr;
+                        }
+                    }
+                }
+            }
+
+            if (baseElement.length > 0) {
+                let overallCondition = false;
+                let tempNewRecordValueForUpdate; // Value from single extractValue (rule 1 like)
+                if (rule.extractValue) {
+                     let tempExtractedString = (rule.extractValue.from === "text") ? baseElement.text() : baseElement.attr(rule.extractValue.from);
+                     if (rule.extractValue.dataType === "number") tempNewRecordValueForUpdate = parseFloat(tempExtractedString);
+                     else tempNewRecordValueForUpdate = tempExtractedString;
+                }
+
+                let diffP = 0; // Specific for RULE_4_CONDITION
+
+                if (rule.complexCondition && rule.complexCondition.type === "RULE_2_5_LIKE_CONDITION") {
+                     if (extractedData.NewRecord !== undefined && extractedData.PostName !== undefined && typeof ruleScopedUpdatedRecord === 'number') {
+                        const cond_newRecordGreaterThanRecord = extractedData.NewRecord > ruleScopedUpdatedRecord;
+                        const cond_isNotLoggedInOrNoLoginData = !LoginData || Object.keys(LoginData).length === 0;
+                        const diff = extractedData.NewRecord - ruleScopedUpdatedRecord;
+                        const cond_diffGreaterThanThreshold = diff > rule.complexCondition.diffThreshold;
+                        const cond_postNameNotUser = LoginData && LoginData.username ? extractedData.PostName !== LoginData.username : true;
+                        overallCondition = cond_newRecordGreaterThanRecord && (cond_isNotLoggedInOrNoLoginData || cond_diffGreaterThanThreshold || cond_postNameNotUser);
+                        if (overallCondition) {
+                             if (rule.ifConditionMet.setOpenUrl) {
+                                let recordPlus2 = ruleScopedUpdatedRecord + 2;
+                                OpenURL['default'] = rule.ifConditionMet.setOpenUrl.replace('{extracted.PID}', extractedData.PID || '').replace('{recordPlus2}', recordPlus2.toString());
+                            }
+                            if (rule.ifConditionMet.setShowMessage) ShowMessage['default'] = rule.ifConditionMet.setShowMessage.replace('{diff}', diff.toString());
+                        }
+                    }
+                } else if (rule.complexCondition && rule.complexCondition.type === "RULE_4_CONDITION") {
+                    if (extractedData.NewTime !== undefined && extractedData.NewP !== undefined && extractedData.PostName !== undefined) {
+                        diffP = extractedData.NewP - parsedRecord.OldP;
+                        const cond_NewTime_gt_OldTime = extractedData.NewTime > parsedRecord.OldTime;
+                        const cond_isNotLoggedInOrNoLoginData = !LoginData || Object.keys(LoginData).length === 0;
+                        const cond_diffP_gt_1 = diffP > 1;
+                        const cond_postNameNotUser = LoginData && LoginData.username ? extractedData.PostName !== LoginData.username : true;
+                        overallCondition = cond_NewTime_gt_OldTime && (cond_isNotLoggedInOrNoLoginData || cond_diffP_gt_1 || cond_postNameNotUser);
+                        if (overallCondition) {
+                            if (rule.ifConditionMet.setOpenUrl) {
+                                let oldPPlus1 = parsedRecord.OldP + 1;
+                                OpenURL['default'] = rule.ifConditionMet.setOpenUrl.replace('{extracted.PID}', extractedData.PID || '').replace('{OldPplus1}', oldPPlus1.toString());
+                            }
+                            if (rule.ifConditionMet.setShowMessage) ShowMessage['default'] = rule.ifConditionMet.setShowMessage.replace('{diffP}', diffP.toString());
+                        }
+                    }
+                } else if (rule.comparison && rule.comparison.type === "GREATER_THAN_RECORD" && tempNewRecordValueForUpdate !== undefined && typeof ruleScopedUpdatedRecord === 'number') {
+                    if (tempNewRecordValueForUpdate > ruleScopedUpdatedRecord) {
+                        overallCondition = true;
+                        if (rule.ifConditionMet.setOpenUrl) {
+                            let ptidMatch = PageData.match(/thread-([^-]+)-/); let ptid = ptidMatch ? ptidMatch[1] : '';
+                            let recordPlus2 = ruleScopedUpdatedRecord + 2;
+                            OpenURL['default'] = rule.ifConditionMet.setOpenUrl.replace('{ptid}', ptid).replace('{recordPlus2}', recordPlus2.toString());
+                        }
+                        if (rule.ifConditionMet.setShowMessage) {
+                            let diff = tempNewRecordValueForUpdate - ruleScopedUpdatedRecord;
+                            ShowMessage['default'] = rule.ifConditionMet.setShowMessage.replace('{ServerName}', ServerName).replace('{PathName}', PathName).replace('{diff}', diff.toString());
+                        }
+                    }
+                }
+
+                // Record update logic
+                if (rule.ifConditionMet && rule.ifConditionMet.updateRecordOnlyOnConditionMet) {
+                    if (overallCondition && rule.ifConditionMet.updateRecordFormat) {
+                        let newFormattedRecord = rule.ifConditionMet.updateRecordFormat;
+                        for(const key in extractedData) newFormattedRecord = newFormattedRecord.replace(`{extracted.${key}}`, extractedData[key]);
+                        finalRecordValue = newFormattedRecord;
+                    }
+                    // If condition not met, finalRecordValue remains ruleScopedUpdatedRecord (i.e. original or initialized)
+                } else if (rule.ifConditionMet && rule.ifConditionMet.updateRecordTo === "extractedValue") { // For rules 1,2,3,5
+                    const sourceVal = rule.ifConditionMet.updateSource ? extractedData[rule.ifConditionMet.updateSource] : tempNewRecordValueForUpdate;
+                    if (sourceVal !== undefined) finalRecordValue = sourceVal;
+                }
+
+            } else {
+                if (rule.fallbackLoginCheckSelector) {
+                    if (JData.find(rule.fallbackLoginCheckSelector).length > 0) Login = true;
+                }
+            }
+        } else if (rule.type === "DAILY_LOGIN_CHECK") {
+            let todayDate = (new Date()).getDate();
+            // Ensure ruleScopedUpdatedRecord is a number for comparison
+            // It should have been converted to a number at the start of the rule processing if not a tuple.
+            let numericRecord = typeof ruleScopedUpdatedRecord === 'number' ? ruleScopedUpdatedRecord : parseFloat(ruleScopedUpdatedRecord);
+            if (isNaN(numericRecord)) numericRecord = 0;
+
+            let conditionMet = false;
+            if (rule.condition === "RECORD_NOT_EQUALS_TODAY") {
+                if (numericRecord !== todayDate) {
+                    conditionMet = true;
+                }
+            }
+
+            if (conditionMet && rule.ifConditionMet && rule.ifConditionMet.setOpenUrl) {
+                let urlToSet = rule.ifConditionMet.setOpenUrl;
+                if (Array.isArray(urlToSet)) {
+                    OpenURL['default'] = urlToSet[0];
+                } else {
+                    OpenURL['default'] = urlToSet;
+                }
+            }
+
+            if (rule.updateRecordTo === "TODAY") {
+                finalRecordValue = todayDate;
+            }
+        }
+    }
+    return {
+        'Login': Login,
+        'Record': finalRecordValue,
+        'OpenURL': OpenURL,
+        'ShowMessage': ShowMessage
+    };
+}
+
 //--檢查(Server as String,Path as String,Execution as object)
 function Query(Server, Path, Execution) {
 	Log_('正在連線：' + Server + Path);
@@ -355,34 +613,54 @@ function Query(Server, Path, Execution) {
 			for (var ExecutionID in this.Execution) {
 				Log_('開始檢查：' + this.Server + this.Path + '_' + ExecutionID);
 				var ThisOption = {};
-				$.extend(ThisOption, this.Option, DataItem.Get().Execution[ExecutionID].Option);
-				var ReturnData = (function (Data, DataItem, Server, Path, ExecutionID) {
-					var ServerName = DataItem.Server[Server].Name;
-					var PathName = DataItem.Server[Server].Path[Path].Name;
-					var ExecutionName = DataItem.Server[Server].Path[Path].Execution[ExecutionID];
-					var Record = DataItem.Server[Server].Path[Path].Execution[ExecutionID];
-					var LoginData = (DataItem.Server[Server].LoginData.Data?DataItem.Server[Server].LoginData.Data:undefined);
-					var Delete = false, Login = false, OpenURL, ShowMessage;
-					var JData = $(Data.replace(/ src=[^ >]+/g, ""));
-					eval(DataItem.Execution[ExecutionID].Code);
-					return {
-						'Login': Login,
-						'Record': Record,
-						'OpenURL': OpenURL,
-						'ShowMessage': ShowMessage
-					};
-				})(PageData, DataItem.Get(), this.Server, this.Path, ExecutionID);
+				var currentDataItem = DataItem.Get(); // Get DataItem once
+				$.extend(ThisOption, this.Option, currentDataItem.Execution[ExecutionID].Option);
+
+				var ServerName = currentDataItem.Server[this.Server].Name;
+				var PathName = currentDataItem.Server[this.Server].Path[this.Path].Name;
+				var Record = currentDataItem.Server[this.Server].Path[this.Path].Execution[ExecutionID]; // This is the current record for this rule
+				var loginDataForEval = (currentDataItem.Server[this.Server].LoginData.Data ? currentDataItem.Server[this.Server].LoginData.Data : undefined); // Renamed to loginDataForEval for clarity in this scope
+				var JData = $(PageData.replace(/ src=[^ >]+/g, ""));
+
+				var ReturnData;
+				var evalRecord = Record; // evalRecord will be passed to processRuleEngine or used by eval.
+
+				if (ExecutionID === '0') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				} else if (ExecutionID === '1') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				} else if (ExecutionID === '2') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				} else if (ExecutionID === '3') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				} else if (ExecutionID === '4') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				} else if (ExecutionID === '5') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				} else if (ExecutionID === '6') {
+					ReturnData = processRuleEngine(currentDataItem.Execution[ExecutionID].rules, JData, PageData, this.Server, ServerName, PathName, evalRecord, loginDataForEval);
+				}
+				// All rules should now be handled by processRuleEngine
+
 				Log_('檢查結果：' + this.Server + this.Path + '_' + ExecutionID + '\r\n　　　　　' + JSON.stringify(ReturnData));
-				if (ReturnData.Login){
+				if (ReturnData.Login) {
 					Log_('需要登入：' + this.Server + this.Path + '_' + ExecutionID);
 					Login(this.Server, this.Path, ExecutionID);
 				}
 				else {
-					DataItem.Get().Server[this.Server].Path[this.Path].Execution[ExecutionID] = ReturnData.Record;
-					delete ReturnData.Login;
-					delete ReturnData.Record;
+					// ReturnData.Record contains the updated Record value, whether from processSpecificRule_0 or eval.
+					// This updated Record needs to be saved back to the DataItem.
+					currentDataItem.Server[this.Server].Path[this.Path].Execution[ExecutionID] = ReturnData.Record;
+
+					// Create a new object for AddRemind, excluding Login and Record properties
+					var remindPayload = {};
+					for (var key in ReturnData) {
+						if (key !== 'Login' && key !== 'Record') {
+							remindPayload[key] = ReturnData[key];
+						}
+					}
 					Scheduling.AddQuery(this.Server, this.Path, ExecutionID, ThisOption.Frequency);
-					Scheduling.AddRemind(this.Server, this.Path, ExecutionID, ReturnData, ThisOption);
+					Scheduling.AddRemind(this.Server, this.Path, ExecutionID, remindPayload, ThisOption);
 				}
 			}
 		},
@@ -452,7 +730,7 @@ function AddSpendTime() {
 			SoundFilePaths[Scheduling.Remind[URLID].Option.SoundFilePath] = true;
 	}
 	if (CheckObject(SoundFilePaths)) {
-		$('#sounds').empty();
+		// $('#sounds').empty();
 		for (var SoundFilePath in SoundFilePaths) OpenSound(SoundFilePath);
 	}
 	var HasURL = false;
@@ -463,16 +741,16 @@ function AddSpendTime() {
 		}
 	}
 	if (HasURL) {
-		chrome.browserAction.setPopup({ popup: '' });
-		chrome.browserAction.setIcon({ path: "icons/NewMessages.png" });
-		chrome.browserAction.setTitle({ title: "有新訊息" });
+		chrome.action.setPopup({ popup: '' });
+		chrome.action.setIcon({ path: "icons/NewMessages.png" });
+		chrome.action.setTitle({ title: "有新訊息" });
 		if (ClickTemp.Animation) Animation();
 	}
 	else {
 		delete ClickTemp;
-		chrome.browserAction.setPopup({ popup: 'popup.html' });
-		chrome.browserAction.setIcon({ path: "icons/Silent.png" });
-		chrome.browserAction.setTitle({ title: "無訊息" });
+		chrome.action.setPopup({ popup: 'popup.html' });
+		chrome.action.setIcon({ path: "icons/Silent.png" });
+		chrome.action.setTitle({ title: "無訊息" });
 	}
 	Scheduling.Remind = {};
 }

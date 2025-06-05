@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AutoQuery Options</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; padding: 10px; }
+        label { display: block; margin-top: 10px; }
+        input[type='text'], input[type='number'] { width: 200px; margin-bottom: 10px; }
+        button { margin-top: 20px; padding: 10px 15px; }
+    </style>
+</head>
+<body>
+    <h1>AutoQuery Settings</h1>
+
+    <label for="timeUnits">Time Units (ms per unit):</label>
+    <input type="number" id="timeUnits">
+
+    <label for="frequency">Default Check Frequency (units):</label>
+    <input type="number" id="frequency">
+
+    <label for="errorReTestTime">Error Retry Time (units):</label>
+    <input type="number" id="errorReTestTime">
+
+    <label for="timeOut">Timeout (units):</label>
+    <input type="number" id="timeOut">
+
+    <label for="soundFilePath">Sound File Path:</label>
+    <input type="text" id="soundFilePath" value="Notice.mp3" disabled> <!-- Keep disabled for now as sound is not working -->
+
+    <label><input type="checkbox" id="animation"> Enable Animation</label>
+    <label><input type="checkbox" id="desktopAlert"> Enable Desktop Alerts</label>
+
+    <button id="saveButton">Save Settings</button>
+    <div id="status"></div>
+
+    <script src="js/options.js"></script>
+</body>
+</html>
