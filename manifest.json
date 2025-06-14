@@ -1,6 +1,6 @@
 {
 	"manifest_version": 3,
-	"name": "Auto Query",
+	"name": "Auto Query 開發版",
 	"version": "1.0",
 	"description": "自動查詢指定網址的訊息",
 	"icons": {
